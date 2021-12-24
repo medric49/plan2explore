@@ -75,9 +75,9 @@ class ConvEncoder(nn.Module):
         return h
 
 
-class LatentDisagreementMLP(nn.Module):
+class LDDecoder(nn.Module):
     def __init__(self, state_dim, action_dim, feature_dim, ld_hidden_dim):
-        super(LatentDisagreementMLP, self).__init__()
+        super(LDDecoder, self).__init__()
         self._encoder = nn.Sequential(
             nn.Linear(state_dim + action_dim, ld_hidden_dim),
             nn.ReLU(),
@@ -91,15 +91,21 @@ class LatentDisagreementMLP(nn.Module):
         return self._encoder(h)
 
 
-class LatentDisagreement(nn.Module):
+class LD(nn.Module):
     def __init__(self, nb_mlp, state_dim, action_dim, feature_dim, ld_hidden_dim):
-        super(LatentDisagreement, self).__init__()
+        super(LD, self).__init__()
         self._encoders = nn.ModuleList(
-            [LatentDisagreementMLP(state_dim, action_dim, feature_dim, ld_hidden_dim) for _ in range(nb_mlp)]
+            [LDDecoder(state_dim, action_dim, feature_dim, ld_hidden_dim) for _ in range(nb_mlp)]
         )
 
-    def forward(self, states, actions):
-        return [encoder(states, actions) for encoder in self._encoders]
+    def forward(self, states, actions, mean=True):
+        features = [encoder(states, actions) for encoder in self._encoders]
+        rewards = torch.zeros(states.shape[0], dtype=torch.float32)
+
+        if mean:
+            return torch.stack(features, dim=1).mean(dim=1), rewards
+        else:
+            return torch.cat(features, dim=1), rewards
 
 
 class StateEncoder(nn.Module):
@@ -151,7 +157,7 @@ class Actor(nn.Module):
         self.apply(utils.weight_init)
 
     def forward(self, states, std):
-        mu = self.policy(states)
+        mu = self._policy(states)
         mu = torch.sigmoid(mu)
         std = torch.ones_like(mu) * std
         dist = utils.TruncatedNormal(mu, std)

@@ -156,7 +156,7 @@ class ExtendedTimeStepWrapper(dm_env.Environment):
     def _augment_time_step(self, time_step, action=None):
         if action is None:
             action_spec = self.action_spec()
-            action = np.zeros(action_spec.shape, dtype=action_spec.dtype)
+            action = np.ones(action_spec.shape, dtype=action_spec.dtype) * 0.5
         return ExtendedTimeStep(observation=time_step.observation,
                                 step_type=time_step.step_type,
                                 action=action,
@@ -173,7 +173,7 @@ class ExtendedTimeStepWrapper(dm_env.Environment):
         return getattr(self._env, name)
 
 
-def make(name, frame_stack, action_repeat, seed):
+def make(name, frame_stack, action_repeat, seed, obs_height, obs_width):
     domain, task = name.split('_', 1)
     # overwrite cup to ball_in_cup
     domain = dict(cup='ball_in_cup').get(domain, domain)
@@ -191,12 +191,12 @@ def make(name, frame_stack, action_repeat, seed):
     # add wrappers
     env = ActionDTypeWrapper(env, np.float32)
     env = ActionRepeatWrapper(env, action_repeat)
-    env = action_scale.Wrapper(env, minimum=-1.0, maximum=+1.0)
+    env = action_scale.Wrapper(env, minimum=0., maximum=+1.0)
     # add renderings for clasical tasks
     if (domain, task) in suite.ALL_TASKS:
         # zoom in camera for quadruped
         camera_id = dict(quadruped=2).get(domain, 0)
-        render_kwargs = dict(height=84, width=84, camera_id=camera_id)
+        render_kwargs = dict(height=obs_height, width=obs_width, camera_id=camera_id)
         env = pixels.Wrapper(env,
                              pixels_only=True,
                              render_kwargs=render_kwargs)
