@@ -2,3 +2,5 @@
 __pycache__
 *.ipynb
 !*_example.py
+.ipynb_checkpoints
+exp_local
