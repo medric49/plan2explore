@@ -87,25 +87,27 @@ class LDDecoder(nn.Module):
         self.apply(utils.weight_init)
 
     def forward(self, states, actions):
-        h = torch.cat([states, actions], dim=-1)
+        h = torch.cat([states, actions], dim=1)
         return self._encoder(h)
 
 
 class LD(nn.Module):
     def __init__(self, nb_mlp, state_dim, action_dim, feature_dim, ld_hidden_dim):
         super(LD, self).__init__()
+        self.nb_mlp = nb_mlp
         self._encoders = nn.ModuleList(
             [LDDecoder(state_dim, action_dim, feature_dim, ld_hidden_dim) for _ in range(nb_mlp)]
         )
 
     def forward(self, states, actions, mean=True):
-        features = [encoder(states, actions) for encoder in self._encoders]
-        rewards = torch.zeros(states.shape[0], dtype=torch.float32)
+        features = torch.stack([encoder(states, actions) for encoder in self._encoders], dim=1)
+        feature_means = features.mean(dim=1)
+        feature_var = features.var(dim=1).sum(dim=1)
 
         if mean:
-            return torch.stack(features, dim=1).mean(dim=1), rewards
+            return feature_means, feature_var
         else:
-            return torch.cat(features, dim=1), rewards
+            return torch.flatten(features, start_dim=1), feature_var
 
 
 class StateEncoder(nn.Module):
@@ -138,7 +140,7 @@ class Critic(nn.Module):
         self.apply(utils.weight_init)
 
     def forward(self, states, actions):
-        values = torch.cat([states, actions], dim=-1)
+        values = torch.cat([states, actions], dim=1)
         return self._evaluator(values)
 
 

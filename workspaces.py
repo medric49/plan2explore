@@ -38,13 +38,13 @@ class Workspace:
         # create envs
         self.train_env = dmc.make(
             self.cfg.task_name, self.cfg.frame_stack,
-            self.cfg.action_repeat, self.cfg.seed,
-            self.cfg.obs_height, self.cfg.obs_width
+            self.cfg.action_repeat,
+            self.cfg.obs_height, self.cfg.obs_width, self.cfg.max_step, self.cfg.seed
         )
         self.eval_env = dmc.make(
             self.cfg.task_name, self.cfg.frame_stack,
-            self.cfg.action_repeat, self.cfg.seed,
-            self.cfg.obs_height, self.cfg.obs_width
+            self.cfg.action_repeat,
+            self.cfg.obs_height, self.cfg.obs_width, self.cfg.max_step, self.cfg.seed
         )
         # create replay buffer
         data_specs = (self.train_env.observation_spec(),

@@ -6,6 +6,7 @@ defaults:
 
 obs_width: 64
 obs_height: 64
+max_step: 1000
 
 # task settings
 frame_stack: 3

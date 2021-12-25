@@ -142,23 +142,29 @@ class ActionDTypeWrapper(dm_env.Environment):
 
 
 class ExtendedTimeStepWrapper(dm_env.Environment):
-    def __init__(self, env):
+    def __init__(self, env, max_step):
         self._env = env
+        self._max_step = max_step
+        self._step_count = 0
 
     def reset(self):
         time_step = self._env.reset()
+        self._step_count = 0
         return self._augment_time_step(time_step)
 
     def step(self, action):
         time_step = self._env.step(action)
+        self._step_count += 1
         return self._augment_time_step(time_step, action)
 
     def _augment_time_step(self, time_step, action=None):
         if action is None:
             action_spec = self.action_spec()
             action = np.ones(action_spec.shape, dtype=action_spec.dtype) * 0.5
+
+        step_type = time_step.step_type if self._step_count < self._max_step else StepType.LAST
         return ExtendedTimeStep(observation=time_step.observation,
-                                step_type=time_step.step_type,
+                                step_type=step_type,
                                 action=action,
                                 reward=time_step.reward or 0.0,
                                 discount=time_step.discount or 1.0)
@@ -173,7 +179,7 @@ class ExtendedTimeStepWrapper(dm_env.Environment):
         return getattr(self._env, name)
 
 
-def make(name, frame_stack, action_repeat, seed, obs_height, obs_width):
+def make(name, frame_stack, action_repeat, obs_height, obs_width, max_step, seed):
     domain, task = name.split('_', 1)
     # overwrite cup to ball_in_cup
     domain = dict(cup='ball_in_cup').get(domain, domain)
@@ -202,5 +208,5 @@ def make(name, frame_stack, action_repeat, seed, obs_height, obs_width):
                              render_kwargs=render_kwargs)
     # stack several frames
     env = FrameStackWrapper(env, frame_stack, pixels_key)
-    env = ExtendedTimeStepWrapper(env)
+    env = ExtendedTimeStepWrapper(env, max_step)
     return env

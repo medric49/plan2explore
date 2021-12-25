@@ -81,7 +81,7 @@ class Explorer:
     def update_actor(self, states, step):
         metrics = dict()
 
-        total_rewards = np.zeros(states.shape[0])
+        total_rewards = torch.zeros(states.shape[0]).to(utils.device())
         discount = 1.
 
         for _ in range(self.nstep):
